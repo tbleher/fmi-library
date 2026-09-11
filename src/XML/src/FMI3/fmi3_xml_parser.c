@@ -626,7 +626,15 @@ static int fmi3_xml_str_to_floatXX(fmi3_xml_parser_context_t* context, int requi
 
     /* get the value */
     if (!strVal && !required) {
-        value = defaultVal;
+        /* Copy the default value into the 64 bit buffer, so that 'value' always points to a
+         * fmi3_float_buf_t. Otherwise reading it as fmi3_float_buf_t below would be out-of-bounds
+         * when the caller's default is a 32 bit float. */
+        if (primType->bitness == fmi3_bitness_64) {
+            valReadBuff = (fmi3_float_buf_t)(*(fmi3_float64_t*)defaultVal);
+        } else {
+            valReadBuff = (fmi3_float_buf_t)(*(fmi3_float32_t*)defaultVal);
+        }
+        value = &valReadBuff;
         useDefault = 1;
     } else {
         if (sscanf(strVal, formatter, &valReadBuff) != 1) {
